@@ -53,6 +53,18 @@
             transform: scale(1.03);
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
         }
+
+        /* Custom styles untuk SweetAlert */
+        .swal2-input.custom-input {
+            width: 80% !important; /* Mengurangi lebar input */
+            max-width: 250px; /* Batas maksimum untuk perangkat mobile */
+            margin: 0 auto !important;
+        }
+        .swal2-textarea.custom-textarea {
+            width: 80% !important; /* Mengurangi lebar textarea */
+            max-width: 250px; /* Batas maksimum untuk perangkat mobile */
+            margin: 0 auto !important;
+        }
     </style>
 </head>
 <body class="bg-gray-200 p-3 md:p-5">
@@ -193,6 +205,11 @@
             { name: "Sayur Bayam", price: 15000, img: "https://asset.kompas.com/crops/z25KXo2rdJFByaDN7F9WE-GOh1g=/0x135:1000x802/1200x800/data/photo/2021/01/28/60128f01bf807.jpg", category: "sayuran" },
             { name: "Tumis Kangkung", price: 18000, img: "https://assets.unileversolutions.com/recipes-v2/230520.jpg", category: "sayuran" }
         ];
+
+        // --- Standard SweetAlert Button Styles ---
+        const swalConfirmButtonClass = 'bg-pink-500 hover:bg-pink-600 text-white font-medium py-2 px-4 rounded-lg';
+        const swalCancelButtonClass = 'bg-white border border-gray-300 hover:bg-gray-100 text-gray-700 font-medium py-2 px-4 rounded-lg';
+        const swalConfirmButtonMarginClass = swalConfirmButtonClass + ' mr-3'; // Mengubah ml-4 menjadi mr-3 untuk jarak yang lebih sesuai
 
         function formatCurrency(amount) {
             return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(amount);
@@ -342,10 +359,9 @@
                     `;
 
                     recommendedProducts.forEach(product => {
-                        // --- MODIFICATION START ---
                         document.getElementById('recommended-list').innerHTML += `
-                            <div class="bg-yellow-200 bg-opacity-50 p-2 rounded-lg shadow w-full flex-shrink-0 border product-card"> 
-                        <img src="${product.img}" alt="${product.name}" class="w-full h-24 md:h-28 object-cover rounded-md mb-1">
+                            <div class="bg-yellow-200 bg-opacity-50 p-2 rounded-lg shadow w-full flex-shrink-0 border product-card">
+                                <img src="${product.img}" alt="${product.name}" class="w-full h-24 md:h-28 object-cover rounded-md mb-1">
                                 <h3 class="font-semibold text-xs text-gray-800 mb-1 line-clamp-1">${product.name}</h3>
                                 <p class="text-gray-700 font-bold text-xs">${formatCurrency(product.price)}</p>
                                 <button class="mt-1 w-full flex items-center justify-center text-pink-600 hover:text-pink-800 cart-btn text-xs py-1"
@@ -431,7 +447,7 @@
                         `;
                     });
                 } else {
-                     container.parentElement.innerHTML += '<p class="text-gray-500 text-center col-span-full">Tidak ada produk dalam kategori ini.</p>';
+                    container.parentElement.innerHTML += '<p class="text-gray-500 text-center col-span-full">Tidak ada produk dalam kategori ini.</p>';
                 }
             }
 
@@ -446,7 +462,6 @@
                 });
             });
 
-            // Highlight active button in main navbar
             document.querySelectorAll('nav.flex .category-btn').forEach(btn => {
                 btn.classList.remove('bg-pink-100', 'text-pink-600', 'font-bold');
                 btn.classList.add('bg-gray-100', 'text-gray-600', 'hover:bg-gray-200');
@@ -455,46 +470,80 @@
                     btn.classList.add('bg-pink-100', 'text-pink-600', 'font-bold');
                 }
             });
-             // Highlight active button in sidebar
-             document.querySelectorAll('#sidebar .category-btn').forEach(btn => {
+
+            document.querySelectorAll('#sidebar .category-btn').forEach(btn => {
                 btn.classList.remove('bg-gray-100', 'text-pink-600');
                 btn.classList.add('text-gray-600');
-                 if (btn.getAttribute('data-category') === category) {
+                if (btn.getAttribute('data-category') === category) {
                     btn.classList.remove('text-gray-600');
                     btn.classList.add('bg-gray-100', 'text-pink-600');
                 }
             });
         }
 
-        function addToCart(product) {
-            const existingItem = cart.find(item => item.name === product.name);
-            if (existingItem) {
-                existingItem.quantity++;
-            } else {
-                cart.push({ ...product, quantity: 1, note: '' }); // Add note property
-            }
-            updateCartDisplay();
-
-             // Show simple notification
-            const Toast = Swal.mixin({
-                toast: true,
-                position: 'top-end',
-                showConfirmButton: false,
-                timer: 1500,
-                timerProgressBar: true,
-                didOpen: (toast) => {
-                    toast.addEventListener('mouseenter', Swal.stopTimer)
-                    toast.addEventListener('mouseleave', Swal.resumeTimer)
+        async function addToCart(product) {
+            const { value: formValues } = await Swal.fire({
+                title: `Tambah ${product.name} ke Keranjang`,
+                html: `
+                    <div class="text-left">
+                        <label for="quantity" class="block text-sm font-medium text-gray-700">Jumlah</label>
+                        <input type="number" id="quantity" class="swal2-input custom-input mt-1" min="1" value="1" required>
+                        <label for="note" class="block text-sm font-medium text-gray-700 mt-4">Catatan (opsional)</label>
+                        <textarea id="note" class="swal2-textarea custom-textarea mt-1" placeholder="Masukkan catatan jika ada"></textarea>
+                    </div>
+                `,
+                focusConfirm: false,
+                showCancelButton: true,
+                confirmButtonText: 'Tambah',
+                cancelButtonText: 'Batal',
+                position: 'center',
+                customClass: {
+                    confirmButton: swalConfirmButtonMarginClass,
+                    cancelButton: swalCancelButtonClass,
+                    actions: 'swal2-actions space-x-4' // Menambahkan jarak antar tombol
+                },
+                buttonsStyling: false,
+                preConfirm: () => {
+                    const quantity = parseInt(document.getElementById('quantity').value);
+                    const note = document.getElementById('note').value.trim();
+                    if (!quantity || quantity < 1) {
+                        Swal.showValidationMessage('Jumlah harus lebih dari 0');
+                        return false;
+                    }
+                    return { quantity, note };
                 }
-            })
+            });
 
-            Toast.fire({
-                icon: 'success',
-                title: `${product.name} ditambahkan`
-            })
+            if (formValues) {
+                const { quantity, note } = formValues;
+                const existingItem = cart.find(item => item.name === product.name);
+                if (existingItem) {
+                    existingItem.quantity += quantity;
+                    if (note && !existingItem.note) existingItem.note = note;
+                } else {
+                    cart.push({ ...product, quantity, note });
+                }
+                updateCartDisplay();
+
+                const Toast = Swal.mixin({
+                    toast: true,
+                    position: 'top-end',
+                    showConfirmButton: false,
+                    timer: 1500,
+                    timerProgressBar: true,
+                    didOpen: (toast) => {
+                        toast.addEventListener('mouseenter', Swal.stopTimer);
+                        toast.addEventListener('mouseleave', Swal.resumeTimer);
+                    }
+                });
+
+                Toast.fire({
+                    icon: 'success',
+                    title: `${product.name} ditambahkan`
+                });
+            }
         }
 
-        // Sidebar toggle logic
         const menuToggle = document.getElementById('menu-toggle');
         const sidebar = document.getElementById('sidebar');
         const closeBtn = sidebar.querySelector('.close-btn');
@@ -507,24 +556,19 @@
             sidebar.classList.remove('active');
         });
 
-        // Close sidebar when clicking outside of it (optional)
         document.addEventListener('click', (event) => {
             if (!sidebar.contains(event.target) && !menuToggle.contains(event.target) && sidebar.classList.contains('active')) {
                 sidebar.classList.remove('active');
             }
         });
 
-
-        // Initial render
         renderCategoryProducts('popular');
 
-        // Event Listeners
         document.querySelectorAll('.category-btn').forEach(button => {
             button.addEventListener('click', function () {
                 const category = this.getAttribute('data-category');
                 renderCategoryProducts(category);
-                 // Close sidebar after category selection (if open)
-                 if (sidebar.classList.contains('active')) {
+                if (sidebar.classList.contains('active')) {
                     sidebar.classList.remove('active');
                 }
             });
@@ -542,8 +586,9 @@
                     text: 'Tidak ada item untuk dihapus.',
                     confirmButtonText: 'OK',
                     customClass: {
-                        confirmButton: 'bg-pink-500 hover:bg-pink-600 text-white font-medium py-2 px-4 rounded-lg'
-                    }
+                        confirmButton: swalConfirmButtonClass
+                    },
+                    buttonsStyling: false
                 });
                 return;
             }
@@ -553,13 +598,12 @@
                 text: "Anda yakin ingin mengosongkan keranjang?",
                 icon: 'warning',
                 showCancelButton: true,
-                confirmButtonColor: '#d33',
-                cancelButtonColor: '#6b7280',
                 confirmButtonText: 'Ya, hapus!',
                 cancelButtonText: 'Batal',
                 customClass: {
-                    confirmButton: 'bg-red-500 hover:bg-red-600 text-white font-medium py-2 px-4 rounded-lg ml-2',
-                    cancelButton: 'bg-gray-200 hover:bg-gray-300 text-gray-700 font-medium py-2 px-4 rounded-lg'
+                    confirmButton: swalConfirmButtonMarginClass,
+                    cancelButton: swalCancelButtonClass,
+                    actions: 'swal2-actions space-x-4' // Menambahkan jarak antar tombol
                 },
                 buttonsStyling: false
             }).then((result) => {
@@ -570,26 +614,26 @@
                         title: 'Dihapus!',
                         text: 'Keranjang telah dikosongkan.',
                         icon: 'success',
+                        confirmButtonText: 'OK',
                         customClass: {
-                             confirmButton: 'bg-pink-500 hover:bg-pink-600 text-white font-medium py-2 px-4 rounded-lg'
-                        }
-                    })
+                            confirmButton: swalConfirmButtonClass
+                        },
+                        buttonsStyling: false
+                    });
                 }
-            })
+            });
         });
 
-        let queueNumber = 1; // Initialize queue number
+        let queueNumber = 1;
 
         function updateQueueNumber() {
             document.getElementById('queue-number').textContent = queueNumber;
         }
 
-        // PDF Generation function
         async function generateReceiptPDF(items, total, queueNum) {
             const { jsPDF } = window.jspdf;
             const doc = new jsPDF();
 
-            // Header
             doc.setFontSize(18);
             doc.setFont(undefined, 'bold');
             doc.text("Struk Pembayaran - Warteg Bahagia", doc.internal.pageSize.getWidth() / 2, 20, { align: 'center' });
@@ -598,9 +642,8 @@
             doc.text(`Nomor Antrian: ${queueNum}`, 14, 30);
             doc.text(`Tanggal: ${new Date().toLocaleDateString('id-ID')} ${new Date().toLocaleTimeString('id-ID')}`, 14, 35);
             doc.setLineWidth(0.5);
-            doc.line(14, 38, 196, 38); // Separator line
+            doc.line(14, 38, 196, 38);
 
-            // Items Table
             let y = 45;
             doc.setFontSize(10);
             doc.setFont(undefined, 'bold');
@@ -613,21 +656,20 @@
 
             let subtotalItems = 0;
             items.forEach(item => {
-                 const itemTotal = item.price * item.quantity;
-                 subtotalItems += itemTotal;
-                 let splitName = doc.splitTextToSize(item.name, 110); // Wrap long item names
-                 doc.text(splitName, 14, y);
-                 doc.text(item.quantity.toString(), 130, y, { align: 'right' });
-                 doc.text(formatCurrency(item.price), 160, y, { align: 'right' });
-                 doc.text(formatCurrency(itemTotal), 196, y, { align: 'right' });
-                 y += (splitName.length * 4) + 2; // Adjust y based on wrapped lines
-                 if (y > 250) { // Add new page if needed
-                     doc.addPage();
-                     y = 20;
-                 }
+                const itemTotal = item.price * item.quantity;
+                subtotalItems += itemTotal;
+                let splitName = doc.splitTextToSize(item.name, 110);
+                doc.text(splitName, 14, y);
+                doc.text(item.quantity.toString(), 130, y, { align: 'right' });
+                doc.text(formatCurrency(item.price), 160, y, { align: 'right' });
+                doc.text(formatCurrency(itemTotal), 196, y, { align: 'right' });
+                y += (splitName.length * 4) + 2;
+                if (y > 250) {
+                    doc.addPage();
+                    y = 20;
+                }
             });
 
-             // Calculation Summary
             y += 5;
             doc.setLineWidth(0.2);
             doc.line(14, y, 196, y);
@@ -659,15 +701,12 @@
             doc.text(formatCurrency(total), 196, y, { align: 'right' });
             y += 15;
 
-            // Footer
             doc.setFontSize(9);
             doc.setFont(undefined, 'italic');
             doc.text("Terima kasih telah berkunjung!", doc.internal.pageSize.getWidth() / 2, y, { align: 'center' });
 
-            // Save the PDF
             doc.save(`struk_antrian_${queueNum}.pdf`);
         }
-
 
         document.getElementById('pay-cart').addEventListener('click', function () {
             if (cart.length === 0) {
@@ -677,8 +716,9 @@
                     text: 'Tambahkan item ke keranjang sebelum membayar.',
                     confirmButtonText: 'OK',
                     customClass: {
-                        confirmButton: 'bg-pink-500 hover:bg-pink-600 text-white font-medium py-2 px-4 rounded-lg'
-                    }
+                        confirmButton: swalConfirmButtonClass
+                    },
+                    buttonsStyling: false
                 });
                 return;
             }
@@ -702,13 +742,13 @@
                 showCancelButton: true,
                 confirmButtonText: 'Ya, Bayar & Cetak Struk',
                 cancelButtonText: 'Batal',
-                confirmButtonColor: '#ec4899', // pink-500
-                cancelButtonColor: '#6b7280', // gray-500
                 customClass: {
                     popup: 'rounded-lg',
-                    confirmButton: 'bg-pink-500 hover:bg-pink-600 text-white font-medium py-2 px-4 rounded-lg',
-                    cancelButton: 'bg-white border border-gray-300 hover:bg-gray-100 text-gray-700 font-medium py-2 px-4 rounded-lg'
-                }
+                    confirmButton: swalConfirmButtonMarginClass,
+                    cancelButton: swalCancelButtonClass,
+                    actions: 'swal2-actions space-x-4' // Menambahkan jarak antar tombol
+                },
+                buttonsStyling: false
             }).then(async (result) => {
                 if (result.isConfirmed) {
                     await generateReceiptPDF(cart, total, queueNumber);
@@ -725,8 +765,9 @@
                         text: `Nomor antrian Anda sekarang adalah ${queueNumber}. Struk sedang dicetak.`,
                         confirmButtonText: 'OK',
                         customClass: {
-                            confirmButton: 'bg-pink-500 hover:bg-pink-600 text-white font-medium py-2 px-4 rounded-lg'
-                        }
+                            confirmButton: swalConfirmButtonClass
+                        },
+                        buttonsStyling: false
                     });
                 }
             });
@@ -738,4 +779,3 @@
     </script>
 </body>
 </html>
-
